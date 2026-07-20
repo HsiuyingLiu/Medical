@@ -34,13 +34,6 @@
             line-height: 1.4;
         }
 
-        .version-tag {
-            font-size: 14px;
-            color: var(--text-sub);
-            text-align: center;
-            margin-bottom: 10px;
-        }
-
         h2 {
             font-size: 22px;
             margin-bottom: 16px;
@@ -61,7 +54,27 @@
             margin-bottom: 18px;
         }
 
-        /* 雙欄並排表格版面 */
+        /* 日期欄位專屬容器，用於將星期重疊在輸入框內 */
+        .date-input-container {
+            position: relative;
+            width: 100%;
+        }
+
+        /* 讓星期文字完美的接在年月日後面同一行 */
+        .date-week-overlay {
+            position: absolute;
+            right: 45px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-sub);
+            font-size: 19px;
+            font-weight: 500;
+            pointer-events: none; /* 穿透點擊，不干擾原生日期面板開關 */
+            background-color: #FAFAFA;
+            padding-left: 5px;
+        }
+
+        /* 雙欄並排版面 */
         .inline-group {
             display: table;
             width: 100%;
@@ -78,7 +91,6 @@
             vertical-align: top;
         }
 
-        /* 專門調配醫院與時段比例：醫院佔 65%，時段佔 35% */
         .hospital-cell { width: 65%; }
         .period-cell { width: 35%; }
 
@@ -103,6 +115,11 @@
             -webkit-appearance: none;
         }
 
+        /* 針對 iOS 日期輸入框的文字對齊調整 */
+        input[type="date"] {
+            padding-right: 100px; /* 留空間給同行的星期文字 */
+        }
+
         input:focus, select:focus {
             border-color: var(--accent-blue);
             background-color: #FFFFFF;
@@ -114,7 +131,7 @@
             display: none;
         }
 
-        /* 時段切換鈕專屬樣式 */
+        /* 時段切換鈕 */
         .btn-toggle {
             width: 100%;
             height: 54px;
@@ -129,10 +146,10 @@
             transition: background-color 0.2s;
         }
         .btn-toggle.pm {
-            background-color: #A38560; /* 下午切換為優雅莫蘭迪焦糖棕 */
+            background-color: #A38560;
         }
 
-        /* 按鈕基礎樣式 */
+        /* 基礎按鈕 */
         .btn {
             display: inline-flex;
             align-items: center;
@@ -208,12 +225,14 @@
             margin-bottom: 6px;
         }
 
-        /* 優化歷史紀錄的日期文字，確保 100% 同一行不被切開 */
+        /* 徹底修復門診紀錄日期斷行：無任何括號，強迫完美鎖定在同一行 */
         .record-date {
             font-size: 19px;
             color: var(--text-sub);
             font-weight: 600;
-            white-space: nowrap; /* 強制不換行 */
+            white-space: nowrap; /* 100% 禁止斷行 */
+            overflow: hidden;
+            text-overflow: ellipsis;
             padding: 0;
             margin: 0;
         }
@@ -251,20 +270,21 @@
 </head>
 <body>
 
-    <div class="version-tag">系統版本：V2.4 (日期星期同列 & 時段切換優化)</div>
-
     <!-- 新增門診區塊 -->
     <div class="section">
         <h2>新增門診紀錄</h2>
         <form id="medicalForm" onsubmit="saveRecord(event)">
             
-            <!-- 看診日期 -->
+            <!-- 看診日期 (星期已挪入輸入格同行) -->
             <div class="form-group">
-                <label id="dateLabel">看診日期</label>
-                <input type="date" id="visitDate" onchange="updateDateLabelWeek()" required>
+                <label>看診日期</label>
+                <div class="date-input-container">
+                    <input type="date" id="visitDate" onchange="updateDateBoxWeek()" required>
+                    <span id="dateWeekOverlay" class="date-week-overlay"></span>
+                </div>
             </div>
 
-            <!-- 醫院選擇與時段切換 (同一行配置) -->
+            <!-- 醫院與時段 -->
             <div class="inline-group">
                 <div class="inline-cell hospital-cell">
                     <label for="hospitalSelect">醫院</label>
@@ -281,7 +301,6 @@
                 </div>
             </div>
             
-            <!-- 其他自訂醫院輸入格 -->
             <div class="form-group" style="margin-top: -10px; margin-bottom: 14px;">
                 <input type="text" id="otherHospitalInput" placeholder="請輸入醫院名稱">
             </div>
@@ -342,25 +361,23 @@
         window.onload = function() {
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('visitDate').value = today;
-            updateDateLabelWeek();
+            updateDateBoxWeek();
             updateMonthDisplay();
             renderRecords();
         };
 
-        // 自動動態計算目前選擇日期的星期，加在標題同一行上
-        function updateDateLabelWeek() {
+        // 計算星期幾並直接放入輸入框內的最右側（同行顯示）
+        function updateDateBoxWeek() {
             const dateVal = document.getElementById('visitDate').value;
-            const label = document.getElementById('dateLabel');
+            const overlay = document.getElementById('dateWeekOverlay');
             if (dateVal) {
                 const d = new Date(dateVal);
-                const weekStr = weekDays[d.getDay()];
-                label.innerText = `看診日期 (${weekStr})`;
+                overlay.innerText = weekDays[d.getDay()];
             } else {
-                label.innerText = `看診日期`;
+                overlay.innerText = '';
             }
         }
 
-        // 時段切換功能
         function togglePeriod() {
             const btn = document.getElementById('periodToggleBtn');
             if (btn.innerText === '上午') {
@@ -399,7 +416,6 @@
             const newRecord = {
                 id: Date.now(),
                 date: date,
-                hospital: hospital,
                 period: period,
                 department: department,
                 roomNumber: roomNumber,
@@ -411,7 +427,6 @@
             medicalRecords.sort((a, b) => new Date(b.date) - new Date(a.date));
             localStorage.setItem('medicalRecords', JSON.stringify(medicalRecords));
             
-            // 重置欄位
             document.getElementById('department').value = '';
             document.getElementById('roomNumber').value = '';
             document.getElementById('roomName').value = '';
@@ -460,7 +475,6 @@
                 const card = document.createElement('div');
                 card.className = 'record-card';
                 
-                // 計算星期
                 const d = new Date(r.date);
                 const weekStr = weekDays[d.getDay()];
                 const periodStr = r.period ? ` ${r.period}` : '';
@@ -473,7 +487,7 @@
                     tagsHtml += `</div>`;
                 }
 
-                // 取消原本可能造成斷行的兩邊大括號或符號，確保日期與星期完全同一列
+                // 徹底拔除括號等干擾符號，使日期、星期、上午/下午完美融合成純文字同一行
                 card.innerHTML = `
                     <div class="record-row record-date">${r.date} ${weekStr}${periodStr}</div>
                     <div class="record-row"><span class="record-hospital">${r.hospital}</span> — ${r.department}</div>
@@ -599,11 +613,9 @@
                         const row = rawRows[i];
                         if (!row || row.length === 0) continue;
 
-                        // 判斷是否為系統導出的新版 8 欄位結構，或舊版的 6 欄位結構
                         let dateRaw, periodRaw, hospitalRaw, deptRaw, numRaw, roomRaw, locRaw;
                         
                         if (row.length >= 8) {
-                            // 新版結構：0:日期, 1:星期, 2:時段, 3:醫院, 4:科別, 5:號碼, 6:診間, 7:位置
                             dateRaw = row[0];
                             periodRaw = row[2];
                             hospitalRaw = row[3];
@@ -612,7 +624,6 @@
                             roomRaw = row[6];
                             locRaw = row[7];
                         } else {
-                            // 舊版或相容結構：0:日期, 1:醫院, 2:科別, 3:號碼, 4:診間, 5:位置
                             dateRaw = row[0];
                             periodRaw = '上午';
                             hospitalRaw = row[1];

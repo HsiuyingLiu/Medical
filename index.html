@@ -12,7 +12,7 @@
             --card-bg: #FFFFFF;        /* 純白卡片 */
             --text-main: #2C3E43;      /* 深莫蘭迪藍綠 */
             --text-sub: #5F747A;       /* 副文字：中度灰藍 */
-            --accent-green: #688274;   /* 儲存/下載：鼠尾草綠 */
+            --accent-green: #688274;   /* 儲存/下載/時段：鼠尾草綠 */
             --accent-blue: #708A9E;    /* 上傳：莫蘭迪霧藍 */
             --accent-red: #B58D8D;     /* 清空：莫蘭迪煙燻粉紅 */
             --border-color: #D1C7BD;   /* 淺邊框 */
@@ -32,6 +32,13 @@
             padding: 16px;
             font-size: 19px;
             line-height: 1.4;
+        }
+
+        .version-tag {
+            font-size: 14px;
+            color: var(--text-sub);
+            text-align: center;
+            margin-bottom: 10px;
         }
 
         h2 {
@@ -54,18 +61,15 @@
             margin-bottom: 18px;
         }
 
-        .form-group:last-child {
-            margin-bottom: 0;
-        }
-
+        /* 雙欄並排表格版面 */
         .inline-group {
             display: table;
             width: 100%;
             table-layout: fixed;
             border-collapse: separate;
-            border-spacing: 10px 0;
-            margin-left: -10px;
-            margin-right: -10px;
+            border-spacing: 12px 0;
+            margin-left: -12px;
+            margin-right: -12px;
             margin-bottom: 14px;
         }
 
@@ -73,6 +77,10 @@
             display: table-cell;
             vertical-align: top;
         }
+
+        /* 專門調配醫院與時段比例：醫院佔 65%，時段佔 35% */
+        .hospital-cell { width: 65%; }
+        .period-cell { width: 35%; }
 
         label {
             display: block;
@@ -89,7 +97,7 @@
             border: 1px solid var(--border-color);
             border-radius: 10px;
             color: var(--text-main);
-            padding: 0 14px;
+            padding: 0 12px;
             font-size: 19px;
             outline: none;
             -webkit-appearance: none;
@@ -106,6 +114,25 @@
             display: none;
         }
 
+        /* 時段切換鈕專屬樣式 */
+        .btn-toggle {
+            width: 100%;
+            height: 54px;
+            background-color: var(--accent-blue);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            color: white;
+            font-size: 19px;
+            font-weight: bold;
+            cursor: pointer;
+            outline: none;
+            transition: background-color 0.2s;
+        }
+        .btn-toggle.pm {
+            background-color: #A38560; /* 下午切換為優雅莫蘭迪焦糖棕 */
+        }
+
+        /* 按鈕基礎樣式 */
         .btn {
             display: inline-flex;
             align-items: center;
@@ -121,7 +148,7 @@
             transition: opacity 0.2s, transform 0.1s;
         }
 
-        .btn:active {
+        .btn:active, .btn-toggle:active {
             opacity: 0.9;
             transform: scale(0.98);
         }
@@ -181,10 +208,14 @@
             margin-bottom: 6px;
         }
 
+        /* 優化歷史紀錄的日期文字，確保 100% 同一行不被切開 */
         .record-date {
-            font-size: 18px;
+            font-size: 19px;
             color: var(--text-sub);
-            font-weight: 500;
+            font-weight: 600;
+            white-space: nowrap; /* 強制不換行 */
+            padding: 0;
+            margin: 0;
         }
 
         .record-hospital {
@@ -220,24 +251,38 @@
 </head>
 <body>
 
+    <div class="version-tag">系統版本：V2.4 (日期星期同列 & 時段切換優化)</div>
+
     <!-- 新增門診區塊 -->
     <div class="section">
         <h2>新增門診紀錄</h2>
         <form id="medicalForm" onsubmit="saveRecord(event)">
             
+            <!-- 看診日期 -->
             <div class="form-group">
-                <label for="visitDate">看診日期</label>
-                <input type="date" id="visitDate" required>
+                <label id="dateLabel">看診日期</label>
+                <input type="date" id="visitDate" onchange="updateDateLabelWeek()" required>
             </div>
 
-            <div class="form-group">
-                <label for="hospitalSelect">醫院</label>
-                <select id="hospitalSelect" onchange="toggleHospitalInput()" required>
-                    <option value="榮總">榮總</option>
-                    <option value="馬偕">馬偕</option>
-                    <option value="陽明">陽明</option>
-                    <option value="其他">其他（自行輸入）</option>
-                </select>
+            <!-- 醫院選擇與時段切換 (同一行配置) -->
+            <div class="inline-group">
+                <div class="inline-cell hospital-cell">
+                    <label for="hospitalSelect">醫院</label>
+                    <select id="hospitalSelect" onchange="toggleHospitalInput()" required>
+                        <option value="榮總">榮總</option>
+                        <option value="馬偕">馬偕</option>
+                        <option value="陽明">陽明</option>
+                        <option value="其他">其他（自行輸入）</option>
+                    </select>
+                </div>
+                <div class="inline-cell period-cell">
+                    <label>時段</label>
+                    <button type="button" id="periodToggleBtn" class="btn-toggle" onclick="togglePeriod()">上午</button>
+                </div>
+            </div>
+            
+            <!-- 其他自訂醫院輸入格 -->
+            <div class="form-group" style="margin-top: -10px; margin-bottom: 14px;">
                 <input type="text" id="otherHospitalInput" placeholder="請輸入醫院名稱">
             </div>
 
@@ -289,16 +334,43 @@
         <button class="btn btn-clear" onclick="clearAllData()">一鍵清空所有資料</button>
     </div>
 
-    <script {nonce}>
+    <script>
         let currentDate = new Date();
         let medicalRecords = JSON.parse(localStorage.getItem('medicalRecords')) || [];
+        const weekDays = ['週日', '週一', '週二', '週三', '週四', '週五', '週六'];
 
         window.onload = function() {
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('visitDate').value = today;
+            updateDateLabelWeek();
             updateMonthDisplay();
             renderRecords();
         };
+
+        // 自動動態計算目前選擇日期的星期，加在標題同一行上
+        function updateDateLabelWeek() {
+            const dateVal = document.getElementById('visitDate').value;
+            const label = document.getElementById('dateLabel');
+            if (dateVal) {
+                const d = new Date(dateVal);
+                const weekStr = weekDays[d.getDay()];
+                label.innerText = `看診日期 (${weekStr})`;
+            } else {
+                label.innerText = `看診日期`;
+            }
+        }
+
+        // 時段切換功能
+        function togglePeriod() {
+            const btn = document.getElementById('periodToggleBtn');
+            if (btn.innerText === '上午') {
+                btn.innerText = '下午';
+                btn.classList.add('pm');
+            } else {
+                btn.innerText = '上午';
+                btn.classList.remove('pm');
+            }
+        }
 
         function toggleHospitalInput() {
             const select = document.getElementById('hospitalSelect');
@@ -318,6 +390,7 @@
             const date = document.getElementById('visitDate').value;
             const selectValue = document.getElementById('hospitalSelect').value;
             const hospital = selectValue === '其他' ? document.getElementById('otherHospitalInput').value : selectValue;
+            const period = document.getElementById('periodToggleBtn').innerText;
             const department = document.getElementById('department').value;
             const roomNumber = document.getElementById('roomNumber').value;
             const roomName = document.getElementById('roomName').value;
@@ -327,6 +400,7 @@
                 id: Date.now(),
                 date: date,
                 hospital: hospital,
+                period: period,
                 department: department,
                 roomNumber: roomNumber,
                 roomName: roomName,
@@ -337,6 +411,7 @@
             medicalRecords.sort((a, b) => new Date(b.date) - new Date(a.date));
             localStorage.setItem('medicalRecords', JSON.stringify(medicalRecords));
             
+            // 重置欄位
             document.getElementById('department').value = '';
             document.getElementById('roomNumber').value = '';
             document.getElementById('roomName').value = '';
@@ -371,6 +446,7 @@
             const targetMonth = currentDate.getMonth();
 
             const filtered = medicalRecords.filter(r => {
+                if(!r.date) return false;
                 const rDate = new Date(r.date);
                 return rDate.getFullYear() === targetYear && rDate.getMonth() === targetMonth;
             });
@@ -384,6 +460,11 @@
                 const card = document.createElement('div');
                 card.className = 'record-card';
                 
+                // 計算星期
+                const d = new Date(r.date);
+                const weekStr = weekDays[d.getDay()];
+                const periodStr = r.period ? ` ${r.period}` : '';
+
                 let tagsHtml = '';
                 if (r.roomNumber || r.roomName) {
                     tagsHtml = `<div class="record-row record-detail-tags">`;
@@ -392,8 +473,9 @@
                     tagsHtml += `</div>`;
                 }
 
+                // 取消原本可能造成斷行的兩邊大括號或符號，確保日期與星期完全同一列
                 card.innerHTML = `
-                    <div class="record-row record-date">${r.date}</div>
+                    <div class="record-row record-date">${r.date} ${weekStr}${periodStr}</div>
                     <div class="record-row"><span class="record-hospital">${r.hospital}</span> — ${r.department}</div>
                     ${tagsHtml}
                     ${r.locationInfo ? `<div class="record-row" style="color:var(--text-sub); font-size:17px; margin-top:4px;">位置：${r.locationInfo}</div>` : ''}
@@ -411,65 +493,86 @@
             }
         }
 
+        function s2ab(s) {
+            const buf = new ArrayBuffer(s.length);
+            const view = new Uint8Array(buf);
+            for (let i = 0; i < s.length; i++) view[i] = s.charCodeAt(i) & 0xFF;
+            return buf;
+        }
+
         function exportToExcel() {
             if (medicalRecords.length === 0) {
                 alert('目前沒有任何紀錄可供下載。');
                 return;
             }
 
-            const dataForExcel = medicalRecords.map(r => ({
-                '看診日期': r.date,
-                '醫院': r.hospital,
-                '科別': r.department,
-                '號碼': r.roomNumber || '',
-                '診間': r.roomName || '',
-                '位置': r.locationInfo || ''
-            }));
+            const dataForExcel = medicalRecords.map(r => {
+                const d = new Date(r.date);
+                return {
+                    '看診日期': r.date,
+                    '星期': weekDays[d.getDay()],
+                    '時段': r.period || '上午',
+                    '醫院': r.hospital,
+                    '科別': r.department,
+                    '號碼': r.roomNumber || '',
+                    '診間': r.roomName || '',
+                    '位置': r.locationInfo || ''
+                };
+            });
 
             const worksheet = XLSX.utils.json_to_sheet(dataForExcel);
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, worksheet, "醫療紀錄");
-            XLSX.writeFile(workbook, `醫療紀錄備份_${new Date().toISOString().split('T')[0]}.xlsx`);
+
+            const wbout = XLSX.write(workbook, { bookType: 'xlsx', type: 'binary' });
+            const blob = new Blob([s2ab(wbout)], { type: "application/octet-stream" });
+            const filename = `醫療紀錄備份_${new Date().toISOString().split('T')[0]}.xlsx`;
+            const blobUrl = window.URL.createObjectURL(blob);
+            
+            if (window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches) {
+                const b64out = XLSX.write(workbook, { bookType: 'xlsx', type: 'base64' });
+                window.open('data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,' + b64out, '_blank');
+            } else {
+                const a = document.createElement('a');
+                a.href = blobUrl;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(blobUrl);
+                }, 100);
+            }
         }
 
-        // 強力修正版：精準還原 Numbers 轉出的五位數 Excel 日期號碼
-        function parseExcelDate(val) {
-            if (!val) return null;
+        function forceFormatDate(val) {
+            if (!val) return new Date().toISOString().split('T')[0];
+            let cleanStr = String(val).trim();
             
-            const numStr = String(val).trim();
-            
-            // 判斷是否為 Excel / Numbers 專屬的五位數字（例如 46233）
-            if (/^\d{5}$/.test(numStr) || typeof val === 'number') {
-                const num = Number(val);
-                // 基礎轉換公式
-                const utc_days  = Math.floor(num - 25569);
-                const utc_value = utc_days * 86400;
-                const date_info = new Date(utc_value * 1000);
-                
-                // 強制校正 Numbers 導出時可能遺漏的時區位移
+            if (/^\d{5}$/.test(cleanStr)) {
+                const num = Number(cleanStr);
+                const date_info = new Date((num - 25569) * 86400 * 1000);
                 date_info.setMinutes(date_info.getMinutes() + date_info.getTimezoneOffset());
-                
                 const y = date_info.getFullYear();
                 const m = String(date_info.getMonth() + 1).padStart(2, '0');
                 const d = String(date_info.getDate()).padStart(2, '0');
                 return `${y}-${m}-${d}`;
             }
 
-            // 一般文字格式處理 (2026/07/20 或 2026-07-20)
-            let dateStr = numStr.replace(/\//g, '-');
+            let dateStr = cleanStr.replace(/\//g, '-');
             const parts = dateStr.split('-');
             if (parts.length === 3) {
                 const y = parts[0];
                 const m = parts[1].padStart(2, '0');
                 const d = parts[2].padStart(2, '0');
-                dateStr = `${y}-${m}-${d}`;
+                return `${y}-${m}-${d}`;
             }
 
             const parsed = new Date(dateStr);
             if (!isNaN(parsed.getTime())) {
                 return dateStr;
             }
-            return null;
+            return new Date().toISOString().split('T')[0];
         }
 
         function importFromExcel(e) {
@@ -480,11 +583,9 @@
             reader.onload = function(evt) {
                 try {
                     const data = new Uint8Array(evt.target.result);
-                    // 關閉 raw 模式，啟用 cellDates: false，讓五位數號碼露出來，方便我們強制公式轉換
                     const workbook = XLSX.read(data, { type: 'array', cellDates: false });
                     const firstSheetName = workbook.SheetNames[0];
                     const worksheet = workbook.Sheets[firstSheetName];
-                    
                     const rawRows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
                     if (rawRows.length === 0) {
@@ -498,35 +599,49 @@
                         const row = rawRows[i];
                         if (!row || row.length === 0) continue;
 
-                        const colA = row[0]; // 日期
-                        const colB = row[1]; // 醫院
-                        const colC = row[2]; // 科別
-                        const colD = row[3]; // 號碼
-                        const colE = row[4]; // 診間
-                        const colF = row[5]; // 位置
+                        // 判斷是否為系統導出的新版 8 欄位結構，或舊版的 6 欄位結構
+                        let dateRaw, periodRaw, hospitalRaw, deptRaw, numRaw, roomRaw, locRaw;
+                        
+                        if (row.length >= 8) {
+                            // 新版結構：0:日期, 1:星期, 2:時段, 3:醫院, 4:科別, 5:號碼, 6:診間, 7:位置
+                            dateRaw = row[0];
+                            periodRaw = row[2];
+                            hospitalRaw = row[3];
+                            deptRaw = row[4];
+                            numRaw = row[5];
+                            roomRaw = row[6];
+                            locRaw = row[7];
+                        } else {
+                            // 舊版或相容結構：0:日期, 1:醫院, 2:科別, 3:號碼, 4:診間, 5:位置
+                            dateRaw = row[0];
+                            periodRaw = '上午';
+                            hospitalRaw = row[1];
+                            deptRaw = row[2];
+                            numRaw = row[3];
+                            roomRaw = row[4];
+                            locRaw = row[5];
+                        }
 
-                        // 跳過標題列
-                        if (i === 0 && (String(colA).includes('期') || String(colB).includes('院') || String(colC).includes('科'))) {
+                        if (i === 0 && (String(dateRaw).includes('期') || String(hospitalRaw).includes('院'))) {
                             continue; 
                         }
 
-                        const validDate = parseExcelDate(colA);
-                        
-                        if (validDate || colB || colC) {
+                        if (dateRaw || hospitalRaw || deptRaw) {
                             importedRecords.push({
                                 id: Date.now() + i,
-                                date: validDate || new Date().toISOString().split('T')[0],
-                                hospital: colB ? String(colB).trim() : '未註明',
-                                department: colC ? String(colC).trim() : '未註明',
-                                roomNumber: colD ? String(colD).trim() : '',
-                                roomName: colE ? String(colE).trim() : '',
-                                locationInfo: colF ? String(colF).trim() : ''
+                                date: forceFormatDate(dateRaw),
+                                period: periodRaw ? String(periodRaw).trim() : '上午',
+                                hospital: hospitalRaw ? String(hospitalRaw).trim() : '未註明',
+                                department: deptRaw ? String(deptRaw).trim() : '未註明',
+                                roomNumber: numRaw ? String(numRaw).trim() : '',
+                                roomName: roomRaw ? String(roomRaw).trim() : '',
+                                locationInfo: locRaw ? String(locRaw).trim() : ''
                             });
                         }
                     }
 
                     if (importedRecords.length === 0) {
-                        alert('無法解析有效的門診紀錄，請確認資料是否填寫在 A 到 F 欄。');
+                        alert('無法解析有效的門診紀錄，請檢查檔案格式。');
                         return;
                     }
 
@@ -539,14 +654,13 @@
                     medicalRecords.sort((a, b) => new Date(b.date) - new Date(a.date));
                     localStorage.setItem('medicalRecords', JSON.stringify(medicalRecords));
                     
-                    // 根據上傳資料中最前排的日期自動跳轉月份
                     if (medicalRecords.length > 0) {
                         currentDate = new Date(medicalRecords[0].date);
                     }
                     
                     updateMonthDisplay();
                     renderRecords();
-                    alert(`Excel 資料匯入成功！已為您載入 ${importedRecords.length} 筆資料。`);
+                    alert(`Excel 資料匯入成功！已加載 ${importedRecords.length} 筆資料。`);
                 } catch (error) {
                     alert('讀取 Excel 失敗，請確認檔案格式。');
                     console.error(error);

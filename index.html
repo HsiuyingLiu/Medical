@@ -87,7 +87,7 @@
             font-weight: 600;
         }
 
-        /* 專為無文字標題欄位挪出的頂部對齊對策 */
+        /* 為了移除星期字樣後能頂部平行對齊的間距 */
         .no-label-spacer {
             padding-top: 36px;
         }
@@ -105,13 +105,11 @@
             -webkit-appearance: none;
         }
 
-        /* 專門微調 iPhone 原生日期輸入格，防止右側自帶日曆圖示擠壓文字 */
         input[type="date"] {
             font-size: 17px; 
             padding: 0 8px;
         }
 
-        /* 星期顯示靜態格 */
         .week-box {
             display: flex;
             align-items: center;
@@ -137,7 +135,6 @@
             display: none;
         }
 
-        /* 時段切換鈕 */
         .btn-toggle {
             width: 100%;
             height: 54px;
@@ -155,7 +152,6 @@
             background-color: #A38560;
         }
 
-        /* 基礎按鈕 */
         .btn {
             display: inline-flex;
             align-items: center;
@@ -188,7 +184,6 @@
             cursor: pointer;
         }
 
-        /* 月份導覽 */
         .month-nav {
             display: flex;
             justify-content: space-between;
@@ -209,7 +204,6 @@
             font-weight: bold;
         }
 
-        /* 強制月份標題完全不折行 */
         #currentMonthLabel {
             font-size: 20px;
             font-weight: bold;
@@ -275,6 +269,61 @@
             padding: 30px 0;
             font-size: 19px;
         }
+
+        /* 彈出層背景 */
+        .ios-download-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        /* 彈出層主視窗 */
+        .ios-download-box {
+            background: var(--card-bg);
+            width: 100%;
+            max-width: 340px;
+            border-radius: 16px;
+            padding: 24px;
+            text-align: center;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+        }
+        .ios-dl-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 12px;
+            color: var(--text-main);
+        }
+        .ios-dl-desc {
+            font-size: 16px;
+            color: var(--text-sub);
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+        .ios-dl-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 50px;
+            background-color: var(--accent-green);
+            color: white;
+            text-decoration: none;
+            font-size: 19px;
+            font-weight: bold;
+            border-radius: 10px;
+            margin-bottom: 12px;
+        }
+        .ios-dl-close {
+            display: inline-block;
+            font-size: 17px;
+            color: var(--text-sub);
+            cursor: pointer;
+            padding: 4px;
+        }
     </style>
 </head>
 <body>
@@ -284,7 +333,6 @@
         <h2>新增門診紀錄</h2>
         <form id="medicalForm" onsubmit="saveRecord(event)">
             
-            <!-- 看診日期與星期（星期標題已移除，改由 CSS Spacer 頂部對齊） -->
             <div class="inline-group">
                 <div class="inline-cell date-cell">
                     <label for="visitDate">看診日期</label>
@@ -295,7 +343,6 @@
                 </div>
             </div>
 
-            <!-- 醫院與時段 -->
             <div class="inline-group">
                 <div class="inline-cell hospital-cell">
                     <label for="hospitalSelect">醫院</label>
@@ -317,7 +364,7 @@
             </div>
 
             <div class="form-group">
-                <label for="department">科別</label>
+                <label for="department">科別 (可點擊用話筒語音輸入)</label>
                 <input type="text" id="department" placeholder="例如：心臟內科、眼科" required>
             </div>
 
@@ -362,6 +409,16 @@
             <input type="file" id="fileInput" accept=".xlsx" onchange="importFromExcel(event)">
         </button>
         <button class="btn btn-clear" onclick="clearAllData()">一鍵清空所有資料</button>
+    </div>
+
+    <!-- 自訂 iOS 安全下載彈出層 -->
+    <div id="iosDlOverlay" class="ios-download-overlay">
+        <div class="ios-download-box">
+            <div class="ios-dl-title">備份檔案已就緒</div>
+            <div class="ios-dl-desc">請點擊下方按鈕以安全儲存 Excel 檔案至您的 iPhone。</div>
+            <a id="iosDlLinkBtn" class="ios-dl-link" href="#" target="_blank">點此儲存檔案</a>
+            <div class="ios-dl-close" onclick="closeDlOverlay()">取消</div>
+        </div>
     </div>
 
     <script>
@@ -523,6 +580,11 @@
             return buf;
         }
 
+        function closeDlOverlay() {
+            document.getElementById('iosDlOverlay').style.display = 'none';
+        }
+
+        // 【最終修正核心】解決不加主畫面時 iOS Safari 被當作廣告阻擋的問題
         function exportToExcel() {
             if (medicalRecords.length === 0) {
                 alert('目前沒有任何紀錄可供下載。');
@@ -550,22 +612,19 @@
             const wbout = XLSX.write(workbook, { bookType: 'xlsx', type: 'binary' });
             const blob = new Blob([s2ab(wbout)], { type: "application/octet-stream" });
             const filename = `醫療紀錄備份_${new Date().toISOString().split('T')[0]}.xlsx`;
+
+            // 將二進位轉成系統絕對允許下載的本地實體物件網址
             const blobUrl = window.URL.createObjectURL(blob);
             
-            if (window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches) {
-                const b64out = XLSX.write(workbook, { bookType: 'xlsx', type: 'base64' });
-                window.open('data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,' + b64out, '_blank');
-            } else {
-                const a = document.createElement('a');
-                a.href = blobUrl;
-                a.download = filename;
-                document.body.appendChild(a);
-                a.click();
-                setTimeout(() => {
-                    document.body.removeChild(a);
-                    window.URL.revokeObjectURL(blobUrl);
-                }, 100);
-            }
+            // 彈出我們自訂的安全下載視窗，引導使用者點擊連結
+            const overlay = document.getElementById('iosDlOverlay');
+            const dlLink = document.getElementById('iosDlLinkBtn');
+            
+            dlLink.href = blobUrl;
+            dlLink.download = filename;
+            
+            // 顯示安全下載視窗
+            overlay.style.display = 'flex';
         }
 
         function forceFormatDate(val) {

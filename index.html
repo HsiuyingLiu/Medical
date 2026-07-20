@@ -54,27 +54,7 @@
             margin-bottom: 18px;
         }
 
-        /* 日期欄位專屬容器，用於將星期重疊在輸入框內 */
-        .date-input-container {
-            position: relative;
-            width: 100%;
-        }
-
-        /* 讓星期文字完美的接在年月日後面同一行 */
-        .date-week-overlay {
-            position: absolute;
-            right: 45px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--text-sub);
-            font-size: 19px;
-            font-weight: 500;
-            pointer-events: none; /* 穿透點擊，不干擾原生日期面板開關 */
-            background-color: #FAFAFA;
-            padding-left: 5px;
-        }
-
-        /* 雙欄並排版面 */
+        /* 雙欄並排基礎表格版面 */
         .inline-group {
             display: table;
             width: 100%;
@@ -91,6 +71,11 @@
             vertical-align: top;
         }
 
+        /* 日期專屬並排比例：輸入格 70%，星期文字 30% */
+        .date-cell { width: 70%; }
+        .week-cell { width: 30%; }
+
+        /* 醫院與時段比例 */
         .hospital-cell { width: 65%; }
         .period-cell { width: 35%; }
 
@@ -115,9 +100,25 @@
             -webkit-appearance: none;
         }
 
-        /* 針對 iOS 日期輸入框的文字對齊調整 */
+        /* 專門微調 iPhone 原生日期輸入格，防止右側自帶日曆圖示擠壓文字 */
         input[type="date"] {
-            padding-right: 100px; /* 留空間給同行的星期文字 */
+            font-size: 17px; /* 稍微縮小 2px 確保年月日完全不擠壓 */
+            padding: 0 8px;
+        }
+
+        /* 星期顯示靜態格 */
+        .week-box {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 54px;
+            background-color: #FAFAFA;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            color: var(--text-main);
+            font-size: 19px;
+            font-weight: bold;
         }
 
         input:focus, select:focus {
@@ -182,13 +183,14 @@
             cursor: pointer;
         }
 
+        /* 月份導覽：加強控制，確保完美在同一行不換行 */
         .month-nav {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 16px;
             background: var(--bg-color);
-            padding: 10px 14px;
+            padding: 10px 8px;
             border-radius: 10px;
         }
 
@@ -197,15 +199,18 @@
             border: none;
             color: var(--text-main);
             font-size: 24px;
-            padding: 0 16px;
+            padding: 0 12px;
             cursor: pointer;
             font-weight: bold;
         }
 
+        /* 強制月份標題完全不折行 */
         #currentMonthLabel {
             font-size: 20px;
             font-weight: bold;
             color: var(--text-main);
+            white-space: nowrap;
+            display: inline-block;
         }
 
         .record-card {
@@ -225,12 +230,11 @@
             margin-bottom: 6px;
         }
 
-        /* 徹底修復門診紀錄日期斷行：無任何括號，強迫完美鎖定在同一行 */
         .record-date {
             font-size: 19px;
             color: var(--text-sub);
             font-weight: 600;
-            white-space: nowrap; /* 100% 禁止斷行 */
+            white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
             padding: 0;
@@ -275,12 +279,15 @@
         <h2>新增門診紀錄</h2>
         <form id="medicalForm" onsubmit="saveRecord(event)">
             
-            <!-- 看診日期 (星期已挪入輸入格同行) -->
-            <div class="form-group">
-                <label>看診日期</label>
-                <div class="date-input-container">
+            <!-- 看診日期與星期（透過左右獨立格子，確保徹底在同一行） -->
+            <div class="inline-group">
+                <div class="inline-cell date-cell">
+                    <label for="visitDate">看診日期</label>
                     <input type="date" id="visitDate" onchange="updateDateBoxWeek()" required>
-                    <span id="dateWeekOverlay" class="date-week-overlay"></span>
+                </div>
+                <div class="inline-cell week-cell">
+                    <label>星期</label>
+                    <div id="dateWeekBox" class="week-box"></div>
                 </div>
             </div>
 
@@ -366,15 +373,15 @@
             renderRecords();
         };
 
-        // 計算星期幾並直接放入輸入框內的最右側（同行顯示）
+        // 計算星期並直接寫入右側專屬方塊中
         function updateDateBoxWeek() {
             const dateVal = document.getElementById('visitDate').value;
-            const overlay = document.getElementById('dateWeekOverlay');
+            const weekBox = document.getElementById('dateWeekBox');
             if (dateVal) {
                 const d = new Date(dateVal);
-                overlay.innerText = weekDays[d.getDay()];
+                weekBox.innerText = weekDays[d.getDay()];
             } else {
-                overlay.innerText = '';
+                weekBox.innerText = '';
             }
         }
 
@@ -487,7 +494,6 @@
                     tagsHtml += `</div>`;
                 }
 
-                // 徹底拔除括號等干擾符號，使日期、星期、上午/下午完美融合成純文字同一行
                 card.innerHTML = `
                     <div class="record-row record-date">${r.date} ${weekStr}${periodStr}</div>
                     <div class="record-row"><span class="record-hospital">${r.hospital}</span> — ${r.department}</div>

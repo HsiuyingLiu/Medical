@@ -14,7 +14,7 @@
             --text-sub: #5F747A;       /* 副文字：中度灰藍 */
             --accent-green: #688274;   /* 儲存/下載/時段：鼠尾草綠 */
             --accent-blue: #708A9E;    /* 上傳：莫蘭迪霧藍 */
-            --accent-red: #B58D8D;     /* 清空：莫蘭迪煙燻粉紅 */
+            --accent-red: #B58D8D;     /* 清空/單筆刪除：莫蘭迪煙燻粉紅 */
             --border-color: #D1C7BD;   /* 淺邊框 */
         }
 
@@ -54,7 +54,7 @@
             margin-bottom: 18px;
         }
 
-        /* 雙欄並排基礎表格版面 */
+        /* 雙欄並排基礎版面 */
         .inline-group {
             display: table;
             width: 100%;
@@ -71,11 +71,8 @@
             vertical-align: top;
         }
 
-        /* 日期專屬並排比例：輸入格 70%，星期顯示框 30% */
         .date-cell { width: 70%; }
         .week-cell { width: 30%; }
-
-        /* 醫院與時段比例 */
         .hospital-cell { width: 65%; }
         .period-cell { width: 35%; }
 
@@ -87,7 +84,6 @@
             font-weight: 600;
         }
 
-        /* 為了移除星期字樣後能頂部平行對齊的間距 */
         .no-label-spacer {
             padding-top: 36px;
         }
@@ -219,6 +215,7 @@
             padding: 14px;
             margin-bottom: 12px;
             box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+            position: relative; /* 讓刪除鈕方便定位 */
         }
 
         .record-card:last-child {
@@ -227,6 +224,10 @@
 
         .record-row {
             margin-bottom: 6px;
+            padding-right: 60px; /* 留右側邊距，防止大段文字撞到右下角刪除鈕 */
+        }
+        .record-row:last-child {
+            margin-bottom: 0;
         }
 
         .record-date {
@@ -236,8 +237,6 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            padding: 0;
-            margin: 0;
         }
 
         .record-hospital {
@@ -255,6 +254,25 @@
             color: var(--text-main);
         }
 
+        /* 漂亮方便的手機單筆紀錄刪除鈕 */
+        .record-delete-btn {
+            position: absolute;
+            right: 14px;
+            bottom: 12px;
+            color: var(--accent-red);
+            font-size: 17px;
+            font-weight: bold;
+            padding: 8px 12px; /* 擴大點擊範圍 */
+            cursor: pointer;
+            text-decoration: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        .record-delete-btn:active {
+            opacity: 0.6;
+        }
+
         .tools-grid {
             display: grid;
             grid-template-columns: 1fr;
@@ -270,7 +288,6 @@
             font-size: 19px;
         }
 
-        /* 彈出層背景 */
         .ios-download-overlay {
             display: none;
             position: fixed;
@@ -281,7 +298,6 @@
             justify-content: center;
             padding: 20px;
         }
-        /* 彈出層主視窗 */
         .ios-download-box {
             background: var(--card-bg);
             width: 100%;
@@ -364,7 +380,7 @@
             </div>
 
             <div class="form-group">
-                <label for="department">科別</label>
+                <label for="department">科別 (可點擊用話筒語音輸入)</label>
                 <input type="text" id="department" placeholder="例如：心臟內科、眼科" required>
             </div>
 
@@ -484,6 +500,7 @@
                 id: Date.now(),
                 date: date,
                 period: period,
+                hospital: hospital, // 核心修復：精準抓取變數值，不再出現 undefined
                 department: department,
                 roomNumber: roomNumber,
                 roomName: roomName,
@@ -520,6 +537,15 @@
             renderRecords();
         }
 
+        // 單筆紀錄刪除功能
+        function deleteSingleRecord(id) {
+            if (confirm('確定要刪除這筆看診紀錄嗎？此動作無法復原。')) {
+                medicalRecords = medicalRecords.filter(r => r.id !== id);
+                localStorage.setItem('medicalRecords', JSON.stringify(medicalRecords));
+                renderRecords();
+            }
+        }
+
         function renderRecords() {
             const container = document.getElementById('recordsContainer');
             container.innerHTML = '';
@@ -554,11 +580,13 @@
                     tagsHtml += `</div>`;
                 }
 
+                // 核心優化：位置欄位前方的 "位置：" 二字已被徹底刪除
                 card.innerHTML = `
                     <div class="record-row record-date">${r.date} ${weekStr}${periodStr}</div>
-                    <div class="record-row"><span class="record-hospital">${r.hospital}</span> — ${r.department}</div>
+                    <div class="record-row"><span class="record-hospital">${r.hospital || '未註明'}</span> — ${r.department}</div>
                     ${tagsHtml}
-                    ${r.locationInfo ? `<div class="record-row" style="color:var(--text-sub); font-size:17px; margin-top:4px;">位置：${r.locationInfo}</div>` : ''}
+                    ${r.locationInfo ? `<div class="record-row" style="color:var(--text-sub); font-size:17px; margin-top:4px;">${r.locationInfo}</div>` : ''}
+                    <div class="record-delete-btn" onclick="deleteSingleRecord(${r.id})">刪除</div>
                 `;
                 container.appendChild(card);
             });
@@ -584,7 +612,6 @@
             document.getElementById('iosDlOverlay').style.display = 'none';
         }
 
-        // 【最終修正核心】解決不加主畫面時 iOS Safari 被當作廣告阻擋的問題
         function exportToExcel() {
             if (medicalRecords.length === 0) {
                 alert('目前沒有任何紀錄可供下載。');
@@ -597,7 +624,7 @@
                     '看診日期': r.date,
                     '星期': weekDays[d.getDay()],
                     '時段': r.period || '上午',
-                    '醫院': r.hospital,
+                    '醫院': r.hospital || '未註明',
                     '科別': r.department,
                     '號碼': r.roomNumber || '',
                     '診間': r.roomName || '',
@@ -613,17 +640,12 @@
             const blob = new Blob([s2ab(wbout)], { type: "application/octet-stream" });
             const filename = `醫療紀錄備份_${new Date().toISOString().split('T')[0]}.xlsx`;
 
-            // 將二進位轉成系統絕對允許下載的本地實體物件網址
             const blobUrl = window.URL.createObjectURL(blob);
-            
-            // 彈出我們自訂的安全下載視窗，引導使用者點擊連結
             const overlay = document.getElementById('iosDlOverlay');
             const dlLink = document.getElementById('iosDlLinkBtn');
             
             dlLink.href = blobUrl;
             dlLink.download = filename;
-            
-            // 顯示安全下載視窗
             overlay.style.display = 'flex';
         }
 

@@ -71,7 +71,7 @@
             vertical-align: top;
         }
 
-        /* 日期專屬並排比例：輸入格 70%，星期文字 30% */
+        /* 日期專屬並排比例：輸入格 70%，星期顯示框 30% */
         .date-cell { width: 70%; }
         .week-cell { width: 30%; }
 
@@ -85,6 +85,11 @@
             color: var(--text-main);
             font-size: 19px;
             font-weight: 600;
+        }
+
+        /* 專為無文字標題欄位挪出的頂部對齊對策 */
+        .no-label-spacer {
+            padding-top: 36px;
         }
 
         input, select {
@@ -102,7 +107,7 @@
 
         /* 專門微調 iPhone 原生日期輸入格，防止右側自帶日曆圖示擠壓文字 */
         input[type="date"] {
-            font-size: 17px; /* 稍微縮小 2px 確保年月日完全不擠壓 */
+            font-size: 17px; 
             padding: 0 8px;
         }
 
@@ -183,7 +188,7 @@
             cursor: pointer;
         }
 
-        /* 月份導覽：加強控制，確保完美在同一行不換行 */
+        /* 月份導覽 */
         .month-nav {
             display: flex;
             justify-content: space-between;
@@ -279,14 +284,13 @@
         <h2>新增門診紀錄</h2>
         <form id="medicalForm" onsubmit="saveRecord(event)">
             
-            <!-- 看診日期與星期（透過左右獨立格子，確保徹底在同一行） -->
+            <!-- 看診日期與星期（星期標題已移除，改由 CSS Spacer 頂部對齊） -->
             <div class="inline-group">
                 <div class="inline-cell date-cell">
                     <label for="visitDate">看診日期</label>
                     <input type="date" id="visitDate" onchange="updateDateBoxWeek()" required>
                 </div>
-                <div class="inline-cell week-cell">
-                    
+                <div class="inline-cell week-cell no-label-spacer">
                     <div id="dateWeekBox" class="week-box"></div>
                 </div>
             </div>
@@ -313,7 +317,7 @@
             </div>
 
             <div class="form-group">
-                <label for="department">科別</label>
+                <label for="department">科別 (可點擊用話筒語音輸入)</label>
                 <input type="text" id="department" placeholder="例如：心臟內科、眼科" required>
             </div>
 
@@ -373,7 +377,6 @@
             renderRecords();
         };
 
-        // 計算星期並直接寫入右側專屬方塊中
         function updateDateBoxWeek() {
             const dateVal = document.getElementById('visitDate').value;
             const weekBox = document.getElementById('dateWeekBox');

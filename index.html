@@ -224,7 +224,7 @@
 
         .record-row {
             margin-bottom: 6px;
-            padding-right: 60px; /* 留防誤觸邊距 */
+            padding-right: 60px;
         }
         .record-row:last-child {
             margin-bottom: 0;
@@ -445,6 +445,8 @@
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('visitDate').value = today;
             updateDateBoxWeek();
+            
+            sortRecords(); // 1. 網頁開啟瞬間立刻強制智慧排序一次
             updateMonthDisplay();
             renderRecords();
         };
@@ -483,13 +485,18 @@
             }
         }
 
-        // 統一核心排序函數：精準讓最新日期、最新建立的項目永遠置頂
+        // 【核心大重寫】：捨棄 Date 物件，改用 iPhone 最穩定的純文字字串比對法，100% 免疫 Safari Bug
         function sortRecords() {
             medicalRecords.sort((a, b) => {
-                if (a.date !== b.date) {
-                    return new Date(b.date) - new Date(a.date); // 日期新的排前面
+                const dateA = String(a.date || '');
+                const dateB = String(b.date || '');
+                
+                if (dateA !== dateB) {
+                    // 利用純文字降序比對，例如 "2026-07-20" 會排在 "2026-07-10" 前面
+                    return dateB.localeCompare(dateA); 
                 }
-                return b.id - a.id; // 日期相同時，剛輸入(ID大)的排前面
+                // 同一天看診時，剛輸入的 ID 較大，排在前面
+                return b.id - a.id;
             });
         }
 
@@ -517,14 +524,14 @@
             };
 
             medicalRecords.push(newRecord);
-            sortRecords(); // 執行精準置頂排序
+            sortRecords(); // 儲存完立刻執行純文字排序
             localStorage.setItem('medicalRecords', JSON.stringify(medicalRecords));
             
             document.getElementById('department').value = '';
             document.getElementById('roomNumber').value = '';
             document.getElementById('roomName').value = '';
             document.getElementById('locationInfo').value = '';
-            if(selectValue === '其他') {
+            if(selectValue === '開他') {
                 document.getElementById('otherHospitalInput').value = '';
             }
 
@@ -542,6 +549,7 @@
 
         function changeMonth(direction) {
             currentDate.setMonth(currentDate.getMonth() + direction);
+            sortRecords(); // 切換月份時多重防禦，確保順序正確
             updateMonthDisplay();
             renderRecords();
         }
@@ -563,8 +571,14 @@
 
             const filtered = medicalRecords.filter(r => {
                 if(!r.date) return false;
-                const rDate = new Date(r.date);
-                return rDate.getFullYear() === targetYear && rDate.getMonth() === targetMonth;
+                // 用最安全的方式切割字串取得年月
+                const parts = String(r.date).split('-');
+                if(parts.length >= 2) {
+                    const rYear = parseInt(parts[0], 10);
+                    const rMonth = parseInt(parts[1], 10) - 1;
+                    return rYear === targetYear && rMonth === targetMonth;
+                }
+                return false;
             });
 
             if (filtered.length === 0) {
@@ -576,8 +590,14 @@
                 const card = document.createElement('div');
                 card.className = 'record-card';
                 
-                const d = new Date(r.date);
-                const weekStr = weekDays[d.getDay()];
+                // 計算星期
+                let weekStr = '';
+                try {
+                    const parts = String(r.date).split('-');
+                    const d = new Date(parts[0], parts[1]-1, parts[2]);
+                    weekStr = weekDays[d.getDay()] || '';
+                } catch(e) { weekStr = ''; }
+
                 const periodStr = r.period ? ` ${r.period}` : '';
 
                 let tagsHtml = '';
@@ -626,10 +646,15 @@
             }
 
             const dataForExcel = medicalRecords.map(r => {
-                const d = new Date(r.date);
+                let weekStr = '';
+                try {
+                    const parts = String(r.date).split('-');
+                    const d = new Date(parts[0], parts[1]-1, parts[2]);
+                    weekStr = weekDays[d.getDay()];
+                } catch(e){}
                 return {
                     '看診日期': r.date,
-                    '星期': weekDays[d.getDay()],
+                    '星期': weekStr || '',
                     '時段': r.period || '上午',
                     '醫院': r.hospital || '未註明',
                     '科別': r.department,
@@ -759,7 +784,7 @@
                         medicalRecords = medicalRecords.concat(importedRecords);
                     }
 
-                    sortRecords(); // 匯入舊資料也同步執行最新的至頂排序
+                    sortRecords(); // 匯入完畢立刻執行純文字排序
                     localStorage.setItem('medicalRecords', JSON.stringify(medicalRecords));
                     
                     if (medicalRecords.length > 0) {

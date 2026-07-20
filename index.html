@@ -451,6 +451,15 @@
             renderRecords();
         };
 
+        // 修正：iOS Safari 常會用「bfcache」快取整頁狀態，導致從背景切回或
+        // 從主畫面圖示重新開啟時，畫面停留在舊的（未排序/未更新）版本。
+        // 這裡強制在頁面從快取恢復時重新整理，確保永遠跑最新的程式與資料。
+        window.addEventListener('pageshow', function(event) {
+            if (event.persisted) {
+                location.reload();
+            }
+        });
+
         function updateDateBoxWeek() {
             const dateVal = document.getElementById('visitDate').value;
             const weekBox = document.getElementById('dateWeekBox');
@@ -485,7 +494,7 @@
             }
         }
 
-        // 【核心大重寫】：捨棄 Date 物件，改用 iPhone 最穩定的純文字字串比對法，100% 免疫 Safari Bug
+        // 用純文字字串比對日期做降序排序（最新在前），已用模擬測試驗證邏輯正確
         function sortRecords() {
             medicalRecords.sort((a, b) => {
                 const dateA = String(a.date || '');
@@ -531,7 +540,7 @@
             document.getElementById('roomNumber').value = '';
             document.getElementById('roomName').value = '';
             document.getElementById('locationInfo').value = '';
-            if(selectValue === '開他') {
+            if(selectValue === '其他') {
                 document.getElementById('otherHospitalInput').value = '';
             }
 

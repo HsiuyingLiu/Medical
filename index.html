@@ -215,7 +215,7 @@
             padding: 14px;
             margin-bottom: 12px;
             box-shadow: 0 2px 6px rgba(0,0,0,0.02);
-            position: relative; /* 讓刪除鈕方便定位 */
+            position: relative;
         }
 
         .record-card:last-child {
@@ -224,7 +224,7 @@
 
         .record-row {
             margin-bottom: 6px;
-            padding-right: 60px; /* 留右側邊距，防止大段文字撞到右下角刪除鈕 */
+            padding-right: 60px; /* 留防誤觸邊距 */
         }
         .record-row:last-child {
             margin-bottom: 0;
@@ -254,7 +254,6 @@
             color: var(--text-main);
         }
 
-        /* 漂亮方便的手機單筆紀錄刪除鈕 */
         .record-delete-btn {
             position: absolute;
             right: 14px;
@@ -262,7 +261,7 @@
             color: var(--accent-red);
             font-size: 17px;
             font-weight: bold;
-            padding: 8px 12px; /* 擴大點擊範圍 */
+            padding: 8px 12px;
             cursor: pointer;
             text-decoration: none;
             -webkit-user-select: none;
@@ -484,6 +483,16 @@
             }
         }
 
+        // 統一核心排序函數：精準讓最新日期、最新建立的項目永遠置頂
+        function sortRecords() {
+            medicalRecords.sort((a, b) => {
+                if (a.date !== b.date) {
+                    return new Date(b.date) - new Date(a.date); // 日期新的排前面
+                }
+                return b.id - a.id; // 日期相同時，剛輸入(ID大)的排前面
+            });
+        }
+
         function saveRecord(e) {
             e.preventDefault();
             
@@ -500,7 +509,7 @@
                 id: Date.now(),
                 date: date,
                 period: period,
-                hospital: hospital, // 核心修復：精準抓取變數值，不再出現 undefined
+                hospital: hospital,
                 department: department,
                 roomNumber: roomNumber,
                 roomName: roomName,
@@ -508,7 +517,7 @@
             };
 
             medicalRecords.push(newRecord);
-            medicalRecords.sort((a, b) => new Date(b.date) - new Date(a.date));
+            sortRecords(); // 執行精準置頂排序
             localStorage.setItem('medicalRecords', JSON.stringify(medicalRecords));
             
             document.getElementById('department').value = '';
@@ -537,7 +546,6 @@
             renderRecords();
         }
 
-        // 單筆紀錄刪除功能
         function deleteSingleRecord(id) {
             if (confirm('確定要刪除這筆看診紀錄嗎？此動作無法復原。')) {
                 medicalRecords = medicalRecords.filter(r => r.id !== id);
@@ -580,7 +588,6 @@
                     tagsHtml += `</div>`;
                 }
 
-                // 核心優化：位置欄位前方的 "位置：" 二字已被徹底刪除
                 card.innerHTML = `
                     <div class="record-row record-date">${r.date} ${weekStr}${periodStr}</div>
                     <div class="record-row"><span class="record-hospital">${r.hospital || '未註明'}</span> — ${r.department}</div>
@@ -752,7 +759,7 @@
                         medicalRecords = medicalRecords.concat(importedRecords);
                     }
 
-                    medicalRecords.sort((a, b) => new Date(b.date) - new Date(a.date));
+                    sortRecords(); // 匯入舊資料也同步執行最新的至頂排序
                     localStorage.setItem('medicalRecords', JSON.stringify(medicalRecords));
                     
                     if (medicalRecords.length > 0) {

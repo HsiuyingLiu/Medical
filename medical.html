@@ -8,14 +8,14 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
         :root {
-            --bg-color: #2C3E43;       /* 深莫蘭迪灰藍 */
-            --card-bg: #3A4D52;        /* 欄位/卡片背景 */
-            --text-main: #ECEFF1;      /* 主文字：米白 */
-            --text-sub: #B0BEC5;       /* 副文字：淺灰 */
-            --accent-green: #688274;   /* 儲存/下載：豆沙綠 */
-            --accent-blue: #516F7D;    /* 上傳：莫蘭迪藍 */
-            --accent-red: #9E7A7A;     /* 清空：暗臘梅紅 */
-            --border-color: #4A5F64;
+            --bg-color: #F0EAE1;       /* 莫蘭迪奶茶/燕麥色 */
+            --card-bg: #FFFFFF;        /* 純白卡片 */
+            --text-main: #2C3E43;      /* 深莫蘭迪藍綠 */
+            --text-sub: #5F747A;       /* 副文字：中度灰藍 */
+            --accent-green: #688274;   /* 儲存/下載：鼠尾草綠 */
+            --accent-blue: #708A9E;    /* 上傳：莫蘭迪霧藍 */
+            --accent-red: #B58D8D;     /* 清空：莫蘭迪煙燻粉紅 */
+            --border-color: #D1C7BD;   /* 淺邊框 */
         }
 
         * {
@@ -38,84 +38,99 @@
             font-size: 22px;
             margin-bottom: 16px;
             color: var(--text-main);
-            border-left: 4px solid var(--accent-green);
-            padding-left: 8px;
+            border-left: 5px solid var(--accent-blue);
+            padding-left: 10px;
         }
 
         .section {
             background-color: var(--card-bg);
-            border-radius: 12px;
-            padding: 16px;
+            border-radius: 16px;
+            padding: 20px;
             margin-bottom: 20px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.15);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
         }
 
-        /* 表單樣式 */
         .form-group {
-            margin-bottom: 16px;
+            margin-bottom: 18px;
         }
 
         .form-group:last-child {
             margin-bottom: 0;
         }
 
+        .inline-group {
+            display: table;
+            width: 100%;
+            table-layout: fixed;
+            border-collapse: separate;
+            border-spacing: 10px 0;
+            margin-left: -10px;
+            margin-right: -10px;
+            margin-bottom: 14px;
+        }
+
+        .inline-cell {
+            display: table-cell;
+            vertical-align: top;
+        }
+
         label {
             display: block;
-            margin-bottom: 6px;
-            color: var(--text-sub);
+            margin-bottom: 8px;
+            color: var(--text-main);
             font-size: 19px;
-            font-weight: 500;
+            font-weight: 600;
         }
 
         input, select {
             width: 100%;
-            height: 50px; /* 適合手指點擊的高度 */
-            background-color: var(--bg-color);
+            height: 54px;
+            background-color: #FAFAFA;
             border: 1px solid var(--border-color);
-            border-radius: 8px;
+            border-radius: 10px;
             color: var(--text-main);
-            padding: 0 12px;
-            font-size: 19px; /* 防止 iOS 自動放大 */
+            padding: 0 14px;
+            font-size: 19px;
             outline: none;
-            -webkit-appearance: none; /* 清除 iOS 預設樣式 */
+            -webkit-appearance: none;
         }
 
         input:focus, select:focus {
-            border-color: var(--text-sub);
+            border-color: var(--accent-blue);
+            background-color: #FFFFFF;
+            box-shadow: 0 0 0 3px rgba(112, 138, 158, 0.15);
         }
 
-        /* 醫院動態輸入欄位 */
         #otherHospitalInput {
             margin-top: 8px;
             display: none;
         }
 
-        /* 按鈕基礎樣式 */
         .btn {
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            height: 52px;
+            height: 54px;
             border: none;
-            border-radius: 8px;
+            border-radius: 10px;
             font-size: 19px;
             font-weight: bold;
             color: white;
             cursor: pointer;
             width: 100%;
-            transition: opacity 0.2s;
+            transition: opacity 0.2s, transform 0.1s;
         }
 
         .btn:active {
-            opacity: 0.8;
+            opacity: 0.9;
+            transform: scale(0.98);
         }
 
-        .btn-submit { background-color: var(--accent-green); margin-top: 8px; }
+        .btn-submit { background-color: var(--accent-green); margin-top: 10px; }
         .btn-download { background-color: var(--accent-green); }
         .btn-upload { background-color: var(--accent-blue); position: relative; }
         .btn-clear { background-color: var(--accent-red); }
 
-        /* 隱藏的原生檔案上傳鈕 */
         #fileInput {
             position: absolute;
             left: 0; top: 0; width: 100%; height: 100%;
@@ -123,15 +138,14 @@
             cursor: pointer;
         }
 
-        /* 歷史紀錄月份導覽 */
         .month-nav {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 16px;
             background: var(--bg-color);
-            padding: 8px;
-            border-radius: 8px;
+            padding: 10px 14px;
+            border-radius: 10px;
         }
 
         .nav-btn {
@@ -141,20 +155,22 @@
             font-size: 24px;
             padding: 0 16px;
             cursor: pointer;
-        }
-
-        #currentMonthLabel {
-            font-size: 19px;
             font-weight: bold;
         }
 
-        /* 紀錄卡片 */
+        #currentMonthLabel {
+            font-size: 20px;
+            font-weight: bold;
+            color: var(--text-main);
+        }
+
         .record-card {
-            background-color: var(--bg-color);
+            background-color: #FAFAFA;
             border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 12px;
+            border-radius: 10px;
+            padding: 14px;
             margin-bottom: 12px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.02);
         }
 
         .record-card:last-child {
@@ -162,15 +178,13 @@
         }
 
         .record-row {
-            margin-bottom: 4px;
-        }
-        .record-row:last-child {
-            margin-bottom: 0;
+            margin-bottom: 6px;
         }
 
         .record-date {
-            font-size: 17px;
+            font-size: 18px;
             color: var(--text-sub);
+            font-weight: 500;
         }
 
         .record-hospital {
@@ -178,39 +192,46 @@
             color: var(--text-main);
         }
 
-        /* 工具按鈕區塊 (下載、上傳、清空) */
+        .record-detail-tags span {
+            display: inline-block;
+            background-color: #EAEAEA;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 17px;
+            margin-right: 6px;
+            color: var(--text-main);
+        }
+
         .tools-grid {
             display: grid;
             grid-template-columns: 1fr;
             gap: 12px;
             margin-top: 24px;
-            margin-bottom: 40px; /* 留白防止擋到 iPhone 底部導覽條 */
+            margin-bottom: 50px;
         }
 
         .no-data {
             text-align: center;
             color: var(--text-sub);
-            padding: 20px 0;
+            padding: 30px 0;
             font-size: 19px;
         }
     </style>
 </head>
 <body>
 
-    <!-- 第一頁：輸入欄位 -->
+    <!-- 新增門診區塊 -->
     <div class="section">
         <h2>新增門診紀錄</h2>
         <form id="medicalForm" onsubmit="saveRecord(event)">
             
-            <!-- 1. 看診日期 -->
             <div class="form-group">
-                <label for="visitDate">1. 看診日期</label>
+                <label for="visitDate">看診日期</label>
                 <input type="date" id="visitDate" required>
             </div>
 
-            <!-- 2. 醫院選擇 -->
             <div class="form-group">
-                <label for="hospitalSelect">2. 醫院</label>
+                <label for="hospitalSelect">醫院</label>
                 <select id="hospitalSelect" onchange="toggleHospitalInput()" required>
                     <option value="榮總">榮總</option>
                     <option value="馬偕">馬偕</option>
@@ -220,35 +241,42 @@
                 <input type="text" id="otherHospitalInput" placeholder="請輸入醫院名稱">
             </div>
 
-            <!-- 3. 科別 (支援語音輸入) -->
             <div class="form-group">
-                <label for="department">3. 科別 (可點擊用話筒語音輸入)</label>
+                <label for="department">科別 (可點擊用話筒語音輸入)</label>
                 <input type="text" id="department" placeholder="例如：心臟內科、眼科" required>
             </div>
 
-            <!-- 4. 號碼/診間/門診位置 -->
+            <div class="inline-group">
+                <div class="inline-cell">
+                    <label for="roomNumber">號碼</label>
+                    <input type="text" id="roomNumber" placeholder="例如：25號">
+                </div>
+                <div class="inline-cell">
+                    <label for="roomName">診間</label>
+                    <input type="text" id="roomName" placeholder="例如：203診">
+                </div>
+            </div>
+
             <div class="form-group">
-                <label for="locationInfo">4. 號碼 / 診間 / 位置 (空格分開)</label>
-                <input type="text" id="locationInfo" placeholder="例如：25號 2樓203診 第一醫療大樓">
+                <label for="locationInfo">位置</label>
+                <input type="text" id="locationInfo" placeholder="例如：第一醫療大樓 2樓">
             </div>
 
             <button type="submit" class="btn btn-submit">儲存此筆紀錄</button>
         </form>
     </div>
 
-    <!-- 第二頁：歷史紀錄（按月檢視） -->
+    <!-- 門診紀錄顯示區塊 -->
     <div class="section">
-        <h2>歷史門診紀錄</h2>
+        <h2>門診紀錄</h2>
         
         <div class="month-nav">
             <button class="nav-btn" onclick="changeMonth(-1)">❮</button>
-            <span id="currentMonthLabel">2026 年 07 月</span>
+            <span id="currentMonthLabel"></span>
             <button class="nav-btn" onclick="changeMonth(1)">❯</button>
         </div>
 
-        <div id="recordsContainer">
-            <!-- 紀錄動態渲染處 -->
-        </div>
+        <div id="recordsContainer"></div>
     </div>
 
     <!-- 資料處理按鈕區 -->
@@ -261,22 +289,17 @@
         <button class="btn btn-clear" onclick="clearAllData()">一鍵清空所有資料</button>
     </div>
 
-    <script>
-        // 初始化當型日期與資料庫
+    <script {nonce}>
         let currentDate = new Date();
         let medicalRecords = JSON.parse(localStorage.getItem('medicalRecords')) || [];
 
-        // 頁面載入時初始化
         window.onload = function() {
-            // 預設看診日期為今天 (格式化為 YYYY-MM-DD)
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('visitDate').value = today;
-            
             updateMonthDisplay();
             renderRecords();
         };
 
-        // 處理「其他」醫院輸入框顯示
         function toggleHospitalInput() {
             const select = document.getElementById('hospitalSelect');
             const otherInput = document.getElementById('otherHospitalInput');
@@ -289,7 +312,6 @@
             }
         }
 
-        // 儲存紀錄
         function saveRecord(e) {
             e.preventDefault();
             
@@ -297,6 +319,8 @@
             const selectValue = document.getElementById('hospitalSelect').value;
             const hospital = selectValue === '其他' ? document.getElementById('otherHospitalInput').value : selectValue;
             const department = document.getElementById('department').value;
+            const roomNumber = document.getElementById('roomNumber').value;
+            const roomName = document.getElementById('roomName').value;
             const locationInfo = document.getElementById('locationInfo').value;
 
             const newRecord = {
@@ -304,44 +328,41 @@
                 date: date,
                 hospital: hospital,
                 department: department,
+                roomNumber: roomNumber,
+                roomName: roomName,
                 locationInfo: locationInfo
             };
 
             medicalRecords.push(newRecord);
-            // 依日期排序（新到舊）
             medicalRecords.sort((a, b) => new Date(b.date) - new Date(a.date));
-            
             localStorage.setItem('medicalRecords', JSON.stringify(medicalRecords));
             
-            // 表單重置（保留日期與醫院選擇）
             document.getElementById('department').value = '';
+            document.getElementById('roomNumber').value = '';
+            document.getElementById('roomName').value = '';
             document.getElementById('locationInfo').value = '';
             if(selectValue === '其他') {
                 document.getElementById('otherHospitalInput').value = '';
             }
 
-            // 跳轉檢視切換到該筆資料的月份
             currentDate = new Date(date);
             updateMonthDisplay();
             renderRecords();
             alert('儲存成功！');
         }
 
-        // 更新月份導覽顯示文字
         function updateMonthDisplay() {
             const year = currentDate.getFullYear();
             const month = String(currentDate.getMonth() + 1).padStart(2, '0');
             document.getElementById('currentMonthLabel').innerText = `${year} 年 ${month} 月`;
         }
 
-        // 切換月份
         function changeMonth(direction) {
             currentDate.setMonth(currentDate.getMonth() + direction);
             updateMonthDisplay();
             renderRecords();
         }
 
-        // 渲染目前月份的歷史紀錄
         function renderRecords() {
             const container = document.getElementById('recordsContainer');
             container.innerHTML = '';
@@ -349,7 +370,6 @@
             const targetYear = currentDate.getFullYear();
             const targetMonth = currentDate.getMonth();
 
-            // 篩選出該月份的紀錄
             const filtered = medicalRecords.filter(r => {
                 const rDate = new Date(r.date);
                 return rDate.getFullYear() === targetYear && rDate.getMonth() === targetMonth;
@@ -363,18 +383,27 @@
             filtered.forEach(r => {
                 const card = document.createElement('div');
                 card.className = 'record-card';
+                
+                let tagsHtml = '';
+                if (r.roomNumber || r.roomName) {
+                    tagsHtml = `<div class="record-row record-detail-tags">`;
+                    if (r.roomNumber) tagsHtml += `<span>${r.roomNumber}</span>`;
+                    if (r.roomName) tagsHtml += `<span>${r.roomName}</span>`;
+                    tagsHtml += `</div>`;
+                }
+
                 card.innerHTML = `
                     <div class="record-row record-date">${r.date}</div>
                     <div class="record-row"><span class="record-hospital">${r.hospital}</span> — ${r.department}</div>
-                    ${r.locationInfo ? `<div class="record-row" style="color:var(--text-sub); font-size:17px;">位置：${r.locationInfo}</div>` : ''}
+                    ${tagsHtml}
+                    ${r.locationInfo ? `<div class="record-row" style="color:var(--text-sub); font-size:17px; margin-top:4px;">位置：${r.locationInfo}</div>` : ''}
                 `;
                 container.appendChild(card);
             });
         }
 
-        // 一鍵清空
         function clearAllData() {
-            if (confirm('確定要清空手機內「所有月份」的醫療紀錄嗎？此動作無法復原。建議先下載備份。')) {
+            if (confirm('確定要清空手機內「所有月份」的醫療紀錄嗎？此動作無法復原。')) {
                 medicalRecords = [];
                 localStorage.removeItem('medicalRecords');
                 renderRecords();
@@ -382,30 +411,67 @@
             }
         }
 
-        // 下載匯出為 Excel (xlsx)
         function exportToExcel() {
             if (medicalRecords.length === 0) {
                 alert('目前沒有任何紀錄可供下載。');
                 return;
             }
 
-            // 轉換成 Excel 欄位名稱
             const dataForExcel = medicalRecords.map(r => ({
                 '看診日期': r.date,
                 '醫院': r.hospital,
                 '科別': r.department,
-                '號碼/診間/門診位置': r.locationInfo
+                '號碼': r.roomNumber || '',
+                '診間': r.roomName || '',
+                '位置': r.locationInfo || ''
             }));
 
             const worksheet = XLSX.utils.json_to_sheet(dataForExcel);
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, worksheet, "醫療紀錄");
-            
-            // 下載檔案
             XLSX.writeFile(workbook, `醫療紀錄備份_${new Date().toISOString().split('T')[0]}.xlsx`);
         }
 
-        // 上傳匯入自 Excel (xlsx)
+        // 強力修正版：精準還原 Numbers 轉出的五位數 Excel 日期號碼
+        function parseExcelDate(val) {
+            if (!val) return null;
+            
+            const numStr = String(val).trim();
+            
+            // 判斷是否為 Excel / Numbers 專屬的五位數字（例如 46233）
+            if (/^\d{5}$/.test(numStr) || typeof val === 'number') {
+                const num = Number(val);
+                // 基礎轉換公式
+                const utc_days  = Math.floor(num - 25569);
+                const utc_value = utc_days * 86400;
+                const date_info = new Date(utc_value * 1000);
+                
+                // 強制校正 Numbers 導出時可能遺漏的時區位移
+                date_info.setMinutes(date_info.getMinutes() + date_info.getTimezoneOffset());
+                
+                const y = date_info.getFullYear();
+                const m = String(date_info.getMonth() + 1).padStart(2, '0');
+                const d = String(date_info.getDate()).padStart(2, '0');
+                return `${y}-${m}-${d}`;
+            }
+
+            // 一般文字格式處理 (2026/07/20 或 2026-07-20)
+            let dateStr = numStr.replace(/\//g, '-');
+            const parts = dateStr.split('-');
+            if (parts.length === 3) {
+                const y = parts[0];
+                const m = parts[1].padStart(2, '0');
+                const d = parts[2].padStart(2, '0');
+                dateStr = `${y}-${m}-${d}`;
+            }
+
+            const parsed = new Date(dateStr);
+            if (!isNaN(parsed.getTime())) {
+                return dateStr;
+            }
+            return null;
+        }
+
         function importFromExcel(e) {
             const file = e.target.files[0];
             if (!file) return;
@@ -414,49 +480,77 @@
             reader.onload = function(evt) {
                 try {
                     const data = new Uint8Array(evt.target.result);
-                    const workbook = XLSX.read(data, { type: 'array' });
+                    // 關閉 raw 模式，啟用 cellDates: false，讓五位數號碼露出來，方便我們強制公式轉換
+                    const workbook = XLSX.read(data, { type: 'array', cellDates: false });
                     const firstSheetName = workbook.SheetNames[0];
                     const worksheet = workbook.Sheets[firstSheetName];
-                    const jsonData = XLSX.utils.sheet_to_json(worksheet);
+                    
+                    const rawRows = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
 
-                    if (jsonData.length === 0) {
-                        alert('Excel 檔案中沒有資料。');
+                    if (rawRows.length === 0) {
+                        alert('Excel 檔案中沒有找到任何資料。');
                         return;
                     }
 
-                    // 驗證並格式化回原本的資料格式
-                    const importedRecords = jsonData.map((row, index) => {
-                        return {
-                            id: Date.now() + index,
-                            date: row['看診日期'] || new Date().toISOString().split('T')[0],
-                            hospital: row['醫院'] || '未註明',
-                            department: row['科別'] || '未註明',
-                            locationInfo: row['號碼/診間/門診位置'] || ''
-                        };
-                    });
+                    const importedRecords = [];
 
-                    if (confirm(`偵測到 ${importedRecords.length} 筆紀錄。請問要「覆蓋現有資料」還是「合併舊資料」？\n\n【確定】：直接覆蓋現有紀錄\n【取消】：合併到現有紀錄中`)) {
+                    for (let i = 0; i < rawRows.length; i++) {
+                        const row = rawRows[i];
+                        if (!row || row.length === 0) continue;
+
+                        const colA = row[0]; // 日期
+                        const colB = row[1]; // 醫院
+                        const colC = row[2]; // 科別
+                        const colD = row[3]; // 號碼
+                        const colE = row[4]; // 診間
+                        const colF = row[5]; // 位置
+
+                        // 跳過標題列
+                        if (i === 0 && (String(colA).includes('期') || String(colB).includes('院') || String(colC).includes('科'))) {
+                            continue; 
+                        }
+
+                        const validDate = parseExcelDate(colA);
+                        
+                        if (validDate || colB || colC) {
+                            importedRecords.push({
+                                id: Date.now() + i,
+                                date: validDate || new Date().toISOString().split('T')[0],
+                                hospital: colB ? String(colB).trim() : '未註明',
+                                department: colC ? String(colC).trim() : '未註明',
+                                roomNumber: colD ? String(colD).trim() : '',
+                                roomName: colE ? String(colE).trim() : '',
+                                locationInfo: colF ? String(colF).trim() : ''
+                            });
+                        }
+                    }
+
+                    if (importedRecords.length === 0) {
+                        alert('無法解析有效的門診紀錄，請確認資料是否填寫在 A 到 F 欄。');
+                        return;
+                    }
+
+                    if (confirm(`成功解析出 ${importedRecords.length} 筆門診紀錄。\n請問要「覆蓋現有資料」還是「合併舊資料」？\n\n【確定】：直接覆蓋現有紀錄\n【取消】：合併到現有紀錄中`)) {
                         medicalRecords = importedRecords;
                     } else {
                         medicalRecords = medicalRecords.concat(importedRecords);
                     }
 
-                    // 重新依日期排序
                     medicalRecords.sort((a, b) => new Date(b.date) - new Date(a.date));
                     localStorage.setItem('medicalRecords', JSON.stringify(medicalRecords));
                     
-                    // 重整畫面
+                    // 根據上傳資料中最前排的日期自動跳轉月份
                     if (medicalRecords.length > 0) {
                         currentDate = new Date(medicalRecords[0].date);
                     }
+                    
                     updateMonthDisplay();
                     renderRecords();
-                    alert('Excel 資料匯入成功！');
+                    alert(`Excel 資料匯入成功！已為您載入 ${importedRecords.length} 筆資料。`);
                 } catch (error) {
-                    alert('讀取 Excel 失敗，請確保檔案格式正確且包含「看診日期、醫院、科別」等欄位。');
+                    alert('讀取 Excel 失敗，請確認檔案格式。');
                     console.error(error);
                 }
-                // 清空 input 讓同檔名可重複觸發
                 e.target.value = '';
             };
             reader.readAsArrayBuffer(file);

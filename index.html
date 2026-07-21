@@ -223,7 +223,7 @@
 
         .record-row {
             margin-bottom: 6px;
-            padding-right: 30px; /* 擴寬右側空間，確保週X百分之百完整顯示 */
+            padding-right: 30px;
         }
         .record-row:last-child {
             margin-bottom: 0;
@@ -487,7 +487,6 @@
             }
         }
 
-        // 解析日期為數字 [年, 月, 日]，做最精準的數值比對排序
         function getDateParts(dateStr) {
             if (!dateStr) return [1970, 1, 1];
             const clean = String(dateStr).replace(/\//g, '-');
@@ -498,7 +497,7 @@
             return [1970, 1, 1];
         }
 
-        // 終極防呆數值比對排序（年大排前面、月大排前面、日大排前面）
+        // 【依選項 B 修正】：正向升序（升冪），讓數字小的（月初/早發生的事，如 7/1）排在最上面！
         function sanitizeAndSortRecords() {
             medicalRecords.forEach(r => {
                 r.date = forceFormatDate(r.date);
@@ -508,11 +507,11 @@
                 const [yA, mA, dA] = getDateParts(a.date);
                 const [yB, mB, dB] = getDateParts(b.date);
 
-                if (yA !== yB) return yB - yA; // 年份大的（新）在上面
-                if (mA !== mB) return mB - mA; // 月份大的（新）在上面
-                if (dA !== dB) return dB - dA; // 日期大的（新）在上面
+                if (yA !== yB) return yA - yB; // 年份小的（舊/早）在上面
+                if (mA !== mB) return mA - mB; // 月份小的（舊/早）在上面
+                if (dA !== dB) return dA - dB; // 日期小的（月初 1日）在上面
                 
-                return b.id - a.id; // 同一天時，後輸入的在上面
+                return a.id - b.id; // 同一天時，先輸入的在上面
             });
             localStorage.setItem('medicalRecords', JSON.stringify(medicalRecords));
         }
@@ -584,7 +583,7 @@
             container.innerHTML = '';
 
             const targetYear = currentDate.getFullYear();
-            const targetMonth = currentDate.getMonth() + 1; // 轉為 1~12 月
+            const targetMonth = currentDate.getMonth() + 1;
 
             const filtered = medicalRecords.filter(r => {
                 if(!r.date) return false;
@@ -691,12 +690,10 @@
             overlay.style.display = 'flex';
         }
 
-        // 強效修復任何怪異日期（強制修復成 2026-07-20 雙位數補零標準格式）
         function forceFormatDate(val) {
             if (!val) return new Date().toISOString().split('T')[0];
             let cleanStr = String(val).trim();
             
-            // 處理 Numbers 五位數日期號碼
             if (/^\d{5}$/.test(cleanStr)) {
                 const num = Number(cleanStr);
                 const date_info = new Date((num - 25569) * 86400 * 1000);

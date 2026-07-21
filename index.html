@@ -224,19 +224,20 @@
 
         .record-row {
             margin-bottom: 6px;
-            padding-right: 60px;
+            padding-right: 45px; /* 釋放欄寬，確保週X完整顯示 */
         }
         .record-row:last-child {
             margin-bottom: 0;
         }
 
+        /* 專門調配看診日期的字距，完美呈現「2026-07-20 週一 上午」不被裁切 */
         .record-date {
-            font-size: 19px;
+            font-size: 18.5px;
             color: var(--text-sub);
             font-weight: 600;
             white-space: nowrap;
+            letter-spacing: -0.5px; /* 緊湊字距，爭取欄寬 */
             overflow: hidden;
-            text-overflow: ellipsis;
         }
 
         .record-hospital {
@@ -256,12 +257,12 @@
 
         .record-delete-btn {
             position: absolute;
-            right: 14px;
-            bottom: 12px;
+            right: 10px;
+            bottom: 10px;
             color: var(--accent-red);
-            font-size: 17px;
+            font-size: 16px;
             font-weight: bold;
-            padding: 8px 12px;
+            padding: 6px 8px;
             cursor: pointer;
             text-decoration: none;
             -webkit-user-select: none;
@@ -446,26 +447,21 @@
             document.getElementById('visitDate').value = today;
             updateDateBoxWeek();
             
-            sortRecords(); // 1. 網頁開啟瞬間立刻強制智慧排序一次
+            // 載入時先淨化並修復資料庫中舊有的日期格式
+            sanitizeAndSortRecords(); 
             updateMonthDisplay();
             renderRecords();
         };
-
-        // 修正：iOS Safari 常會用「bfcache」快取整頁狀態，導致從背景切回或
-        // 從主畫面圖示重新開啟時，畫面停留在舊的（未排序/未更新）版本。
-        // 這裡強制在頁面從快取恢復時重新整理，確保永遠跑最新的程式與資料。
-        window.addEventListener('pageshow', function(event) {
-            if (event.persisted) {
-                location.reload();
-            }
-        });
 
         function updateDateBoxWeek() {
             const dateVal = document.getElementById('visitDate').value;
             const weekBox = document.getElementById('dateWeekBox');
             if (dateVal) {
-                const d = new Date(dateVal);
-                weekBox.innerText = weekDays[d.getDay()];
+                const parts = dateVal.split('-');
+                if(parts.length === 3) {
+                    const d = new Date(parts[0], parts[1]-1, parts[2]);
+                    weekBox.innerText = weekDays[d.getDay()] || '';
+                }
             } else {
                 weekBox.innerText = '';
             }
@@ -494,19 +490,22 @@
             }
         }
 
-        // 用純文字字串比對日期做降序排序（最新在前），已用模擬測試驗證邏輯正確
-        function sortRecords() {
+        // 強效資料淨化與降序排序（100% 確保「日期最新」排在最上面）
+        function sanitizeAndSortRecords() {
+            medicalRecords.forEach(r => {
+                r.date = forceFormatDate(r.date);
+            });
+
             medicalRecords.sort((a, b) => {
-                const dateA = String(a.date || '');
-                const dateB = String(b.date || '');
-                
-                if (dateA !== dateB) {
-                    // 利用純文字降序比對，例如 "2026-07-20" 會排在 "2026-07-10" 前面
-                    return dateB.localeCompare(dateA); 
+                const strA = String(a.date);
+                const strB = String(b.date);
+                if (strA !== strB) {
+                    // 降序比對：數字較大的日期（如 2026-07-20）會排在較小的日期（如 2026-07-10）前面
+                    return strB > strA ? 1 : -1;
                 }
-                // 同一天看診時，剛輸入的 ID 較大，排在前面
                 return b.id - a.id;
             });
+            localStorage.setItem('medicalRecords', JSON.stringify(medicalRecords));
         }
 
         function saveRecord(e) {
@@ -523,7 +522,7 @@
 
             const newRecord = {
                 id: Date.now(),
-                date: date,
+                date: forceFormatDate(date),
                 period: period,
                 hospital: hospital,
                 department: department,
@@ -533,8 +532,7 @@
             };
 
             medicalRecords.push(newRecord);
-            sortRecords(); // 儲存完立刻執行純文字排序
-            localStorage.setItem('medicalRecords', JSON.stringify(medicalRecords));
+            sanitizeAndSortRecords();
             
             document.getElementById('department').value = '';
             document.getElementById('roomNumber').value = '';
@@ -544,7 +542,10 @@
                 document.getElementById('otherHospitalInput').value = '';
             }
 
-            currentDate = new Date(date);
+            // 切換視角至新資料的年份月份
+            const parts = newRecord.date.split('-');
+            currentDate = new Date(parts[0], parts[1]-1, 1);
+            
             updateMonthDisplay();
             renderRecords();
             alert('儲存成功！');
@@ -558,7 +559,6 @@
 
         function changeMonth(direction) {
             currentDate.setMonth(currentDate.getMonth() + direction);
-            sortRecords(); // 切換月份時多重防禦，確保順序正確
             updateMonthDisplay();
             renderRecords();
         }
@@ -580,9 +580,8 @@
 
             const filtered = medicalRecords.filter(r => {
                 if(!r.date) return false;
-                // 用最安全的方式切割字串取得年月
                 const parts = String(r.date).split('-');
-                if(parts.length >= 2) {
+                if(parts.length === 3) {
                     const rYear = parseInt(parts[0], 10);
                     const rMonth = parseInt(parts[1], 10) - 1;
                     return rYear === targetYear && rMonth === targetMonth;
@@ -599,13 +598,12 @@
                 const card = document.createElement('div');
                 card.className = 'record-card';
                 
-                // 計算星期
                 let weekStr = '';
-                try {
-                    const parts = String(r.date).split('-');
+                const parts = String(r.date).split('-');
+                if(parts.length === 3) {
                     const d = new Date(parts[0], parts[1]-1, parts[2]);
                     weekStr = weekDays[d.getDay()] || '';
-                } catch(e) { weekStr = ''; }
+                }
 
                 const periodStr = r.period ? ` ${r.period}` : '';
 
@@ -656,14 +654,14 @@
 
             const dataForExcel = medicalRecords.map(r => {
                 let weekStr = '';
-                try {
-                    const parts = String(r.date).split('-');
+                const parts = String(r.date).split('-');
+                if(parts.length === 3) {
                     const d = new Date(parts[0], parts[1]-1, parts[2]);
-                    weekStr = weekDays[d.getDay()];
-                } catch(e){}
+                    weekStr = weekDays[d.getDay()] || '';
+                }
                 return {
                     '看診日期': r.date,
-                    '星期': weekStr || '',
+                    '星期': weekStr,
                     '時段': r.period || '上午',
                     '醫院': r.hospital || '未註明',
                     '科別': r.department,
@@ -690,6 +688,7 @@
             overlay.style.display = 'flex';
         }
 
+        // 強效校正任何格式的日期（還原 Numbers 五位數，補齊 2026-07-05 標準零號）
         function forceFormatDate(val) {
             if (!val) return new Date().toISOString().split('T')[0];
             let cleanStr = String(val).trim();
@@ -713,10 +712,6 @@
                 return `${y}-${m}-${d}`;
             }
 
-            const parsed = new Date(dateStr);
-            if (!isNaN(parsed.getTime())) {
-                return dateStr;
-            }
             return new Date().toISOString().split('T')[0];
         }
 
@@ -793,11 +788,11 @@
                         medicalRecords = medicalRecords.concat(importedRecords);
                     }
 
-                    sortRecords(); // 匯入完畢立刻執行純文字排序
-                    localStorage.setItem('medicalRecords', JSON.stringify(medicalRecords));
+                    sanitizeAndSortRecords(); // 強制排序與清除雜質
                     
                     if (medicalRecords.length > 0) {
-                        currentDate = new Date(medicalRecords[0].date);
+                        const parts = medicalRecords[0].date.split('-');
+                        currentDate = new Date(parts[0], parts[1]-1, 1);
                     }
                     
                     updateMonthDisplay();
